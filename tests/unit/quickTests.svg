@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg"
+     xmlns:xlink="http://www.w3.org/1999/xlink">
+  <defs>
+    <radialGradient id="radial">
+      <stop offset="10%" stop-color="#ff0000" />
+      <stop offset="95%" stop-color="#ff000000" />
+    </radialGradient>
+  </defs>
+  
+<filter id="outlinedArea" x="-20%" y="-20%" width="140%" height="140%" filterUnits="objectBoundingBox" primitiveUnits="userSpaceOnUse" color-interpolation-filters="linearRGB">
+	<!-- <feGaussianBlur stdDeviation="8 10" x="0%" y="0%" width="100%" height="100%" in="LinkGraphic" edgeMode="none" result="blur"/> -->
+	<feColorMatrix type="matrix" values="1 0 0 0 0 0 1 0 0 0 0 0 1 0 0 0 0 0 100 -20" x="0%" y="0%" width="100%" height="100%" in="LinkGraphic" result="inside"/>
+	<feColorMatrix type="matrix" values="1 0 0 0 0 0 1 0 0 0 0 0 1 0 0 0 0 0 100 -15" x="0%" y="0%" width="100%" height="100%" in="LinkGraphic" result="outside"/>
+	<feComposite in="outside" in2="inside" operator="out" x="0%" y="0%" width="100%" height="100%" result="outline"/>
+	<feColorMatrix type="matrix" values="1 0 0 0 0 0 1 0 0 0 0 0 1 0 0 0 0 0 1 -0.65" x="0%" y="0%" width="100%" height="100%" in="outside" result="fill"/>
+	<feMerge x="0%" y="0%" width="100%" height="100%" result="merge">
+    <feMergeNode in="fill"/>
+    <feMergeNode in="outline"/>
+  </feMerge>
+</filter>
+  
+  <!-- using my radial gradient -->
+  <g class="outlined-area">
+    <circle cx="100" cy="50" r="35" fill="url('#radial')" />
+    <circle cx="150" cy="50" r="35" fill="url('#radial')" />
+    <circle cx="100" cy="100" r="35" fill="url('#radial')" />
+    <circle cx="150" cy="100" r="35" fill="url('#radial')" />
+  </g>
+</svg>
