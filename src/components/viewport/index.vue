@@ -1,7 +1,18 @@
 <template>
   <div class="viewport">
-    <div id="ref-el-viewport" />
-    <!-- content -->
+    <div v-if="currentFile" class="file">
+      <div id="ref-el-viewport" />
+      <div class="objs">
+        <template v-for="(el, eId) in currentFile.els">
+          <Obj
+            v-if="el.type == elType.obj"
+            :key="eId"
+            :id="eId"
+            :state="el"
+          />
+        </template>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -14,10 +25,13 @@ import {
 } from 'vue-property-decorator'
 
 import file from '@/store/modules/file'
+import Obj from '@/components/viewport/Obj.vue'
+
+import { ElType } from '@/@types/base'
 
 @Component({
   components: {
-    //
+    Obj,
   },
 })
 export default class Viewport extends Vue {
@@ -30,8 +44,13 @@ export default class Viewport extends Vue {
     //
   }
 
-  get file() {
-    return file
+  elType = {
+    obj: ElType.OBJ,
+    link: ElType.LINK,
+  }
+
+  get currentFile() {
+    return file.current
   }
 
   @Watch('file.details.staticData', {
@@ -54,17 +73,12 @@ export default class Viewport extends Vue {
     width: 100px;
     height: 100px;
     position: absolute;
+    pointer-events: none;
   }
-  .selector {
-    fill: black;
-    background-color: black;
-    cursor: pointer;
-    opacity: 0;
-  }
-  .selection {
-    fill: blue;
-    background-color: blue;
-    opacity: 0.15;
+  .objs,
+  .links {
+    pointer-events: none;
+    position: relative;
   }
 }
 </style>

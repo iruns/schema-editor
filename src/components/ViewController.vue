@@ -6,13 +6,11 @@
     :style="{
       'background-color': backgroundColor,
     }"
-    @click.left.self="onClick"
-    @mousedown.ctrl.self="startPan"
+    @mousedown.ctrl.exact.self="startPan"
     @mousedown.right.exact.self="startPan"
     @mousewheel.exact.prevent="shift"
     @mousewheel.ctrl.prevent="zoom"
   >
-    <!-- @contextmenu.self.prevent="handleRightClick" -->
     <div
       class="inner"
       :style="{
@@ -51,15 +49,6 @@ export default class ViewController extends Vue {
   @Prop({ type: Function })
   onZoom?: (zoomLevel: number) => {}
 
-  @Prop({ type: Function })
-  onClick?: (mouseEvent: MouseEvent, svgCoords: Vec2) => {}
-
-  @Prop({ type: Function })
-  onRightClick?: (
-    mouseEvent: MouseEvent,
-    svgCoords: Vec2
-  ) => {}
-
   @Prop({ type: String, default: 'whitesmoke' })
   backgroundColor!: string
 
@@ -76,8 +65,8 @@ export default class ViewController extends Vue {
     this.width = rect.width
     this.height = rect.height
 
-    this.offsetX = this.width * 0.5
-    this.offsetY = this.height * 0.2
+    this.offsetX = this.width * 0.1
+    this.offsetY = this.height * 0.1
 
     window.addEventListener('keydown', this.keyDown)
     window.addEventListener('keyup', this.keyUp)
@@ -193,24 +182,6 @@ export default class ViewController extends Vue {
 
     if (this.onZoom) this.onZoom(this.zoomLevel)
   }
-
-  handleClick(e: MouseEvent) {
-    if (this.onClick) this.onClick(e, this.getSVGCoords(e))
-  }
-
-  handleRightClick(e: MouseEvent) {
-    if (this.onRightClick)
-      this.onRightClick(e, this.getSVGCoords(e))
-  }
-
-  getSVGCoords(e: MouseEvent) {
-    return new Vec2(
-      (e.clientX - this.zoomContainerX) / this.zoomLevel -
-        (this.offsetX + this.zoomContentX),
-      (e.clientY - this.zoomContainerY) / this.zoomLevel -
-        (this.offsetY + this.zoomContentY)
-    )
-  }
 }
 </script>
 
@@ -218,6 +189,8 @@ export default class ViewController extends Vue {
 .view-controller {
   overflow: hidden;
   position: relative;
+  width: 100%;
+  height: 100%;
   .inner {
     position: absolute;
     transition: all 100ms;

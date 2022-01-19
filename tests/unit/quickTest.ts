@@ -1,10 +1,7 @@
-const Quaternion = require('quaternion')
-
-const q = new Quaternion()
-console.log(q)
-
-const qv = Quaternion.fromBetweenVectors(
-  [0, 1, 0],
-  [0, 99, 99]
-)
-console.log(qv)
+const objSizes: number[] = []
+let lastSize = 10
+for (let l = 0; l < 5; l++) {
+  objSizes.unshift(lastSize)
+  lastSize = Math.ceil(lastSize * 1.5)
+}
+console.log(objSizes)

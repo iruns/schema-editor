@@ -17,6 +17,7 @@ import {
   DataRes,
   ServerReqType,
 } from '@/@types/server'
+import { ElType, IFile, Vec2 } from '@/@types/base'
 
 const name = 'file'
 if ((store as any).state[name]) store.unregisterModule(name)
@@ -38,6 +39,37 @@ class File extends VuexModule {
   activeFolder: string | null = null
   activeFile: string | null = null
   lines: any[] = []
+
+  current: IFile | null = {
+    objStyles: {
+      default: {
+        level: 2,
+      },
+      element: {
+        color: 'tomato',
+        level: 1,
+      },
+    },
+    linkStyles: {},
+    els: {
+      o0: {
+        type: ElType.OBJ,
+        coords: new Vec2(),
+        text: 'test!',
+      },
+      o1: {
+        type: ElType.OBJ,
+        coords: new Vec2(100, 0),
+        text: 'AAAAAA',
+      },
+      o2: {
+        type: ElType.OBJ,
+        style: 'element',
+        coords: new Vec2(100, 100),
+        text: 'AAAAAA',
+      },
+    },
+  }
 
   @Mutation pickFile(payload: DataReq) {
     Vue.set(this, 'activeFolder', payload.folder!)

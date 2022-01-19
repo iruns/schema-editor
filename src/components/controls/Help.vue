@@ -8,7 +8,7 @@
     <p>Next/Prev 5 steps: <b>ALT + SHIFT + Arrows</b></p>
     <v-divider />
     <h1>Mouse</h1>
-    <p>Pan: <b>Mouse drag</b></p>
+    <p>Pan: <b>CTRL + Mouse drag</b></p>
     <p>Zoom: <b>CTRL + wheel</b></p>
     <p>Next/Prev step: <b>ALT + wheel</b></p>
   </div>
