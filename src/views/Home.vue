@@ -22,9 +22,10 @@ import ViewController from '@/components/ViewController.vue'
 import Viewport from '@/components/viewport/index.vue'
 import Sidebar from '@/components/controls/Sidebar.vue'
 
-import content from '@/store/modules/content'
+import viewportModule from '@/store/modules/viewport'
 
 import { Vec2 } from '@/@types/base'
+import { onMouseDown } from '@/utils/mouse'
 
 @Component({
   components: {
@@ -41,17 +42,18 @@ export default class Home extends Vue {
   // }
 
   get zoomLevel() {
-    return content.zoomLevel
+    return viewportModule.zoomLevel
   }
   setzoomLevel(val: number) {
-    content.setZoomLevel(val)
+    viewportModule.setZoomLevel(val)
   }
 
   onBGMouseDown(e: MouseEvent) {
-    if (e.altKey) content.startDrag(e)
+    // if (e.altKey) viewportModule.startDrag(e)
+    onMouseDown({ e })
   }
   onBGClick(e: MouseEvent) {
-    if (!e.altKey) content.selectEl({})
+    // if (!e.altKey) viewportModule.selectEl({})
   }
 
   outosaveInterval = 1000 * 60 * 5

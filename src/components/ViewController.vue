@@ -113,23 +113,6 @@ export default class ViewController extends Vue {
             this.zoom(ze)
             break
         }
-      } else {
-        let o = 40
-        if (e.shiftKey) o *= 10
-        switch (e.key) {
-          case 'ArrowRight':
-            this.offsetX -= o
-            break
-          case 'ArrowLeft':
-            this.offsetX += o
-            break
-          case 'ArrowDown':
-            this.offsetY -= o
-            break
-          case 'ArrowUp':
-            this.offsetY += o
-            break
-        }
       }
     }
   }

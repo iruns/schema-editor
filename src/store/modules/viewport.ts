@@ -13,11 +13,16 @@ import file from './file'
 import {
   ElSelection,
   ElType,
+  IEl,
   IObj,
   Vec2,
 } from '@/@types/base'
+import {
+  DragEventParams,
+  MouseEventParams,
+} from '@/utils/mouse'
 
-const name = 'content'
+const name = 'viewport'
 if ((store as any).state[name]) store.unregisterModule(name)
 
 const objSizes: string[] = []
@@ -33,7 +38,7 @@ for (let l = 0; l < 5; l++) {
   dynamic: true,
   store,
 })
-class Content extends VuexModule {
+class Viewport extends VuexModule {
   zoomLevel = 1
   @Mutation setZoomLevel(val: number) {
     this.zoomLevel = val
@@ -71,95 +76,136 @@ class Content extends VuexModule {
     obj.text = text
   }
 
+  // Raw mouse event handling and distribution
+  @Action onClick({ e, elId }: MouseEventParams) {
+    if (!e.altKey)
+      this.selectEl({
+        newEls: elId ? [elId] : undefined,
+        add: e.shiftKey,
+      })
+  }
+  @Action onDoubleClick({ e, elId }: MouseEventParams) {
+    console.log('dClick', elId)
+  }
+  @Action onDragStart({ e, elId }: MouseEventParams) {
+    const selected = this.selection.els
+    // if alt is pressed
+    if (e.altKey) {
+      // if there's selection, drag the selected els
+      if (selected) this.startDraggingSelection()
+    }
+    // else
+    else {
+      // if there's no new selection
+      if (!elId || !elId.length) {
+        // start selection rect
+      }
+      // else
+      else {
+        // if new selection is not selected yet, switch selection to it
+        if (!selected || !selected[elId])
+          this.selectEl({ newEls: [elId] })
+        // then drag the selected els
+        this.startDraggingSelection()
+      }
+    }
+  }
+  @Action onDrag({ e, offset }: DragEventParams) {
+    if (this.isDraggingSelection) this.dragSelection(offset)
+  }
+  @Action onDragEnd({ e, elId }: MouseEventParams) {
+    if (this.isDraggingSelection) this.endDraggingSelection
+  }
+
+  // Specific mouse even handling
+
+  //  selecting els
   selection: ElSelection = {
     els: null,
   }
-
   @Mutation selectEl({
     newEls,
     add,
   }: {
-    newEls?: Record<string, true>
+    newEls?: string[]
     add?: boolean
   }) {
     const { selection } = this
 
+    // const s0 = Object.keys(selection.els || {})
+
     // if not selecting > empty
-    if (!newEls || !Object.keys(newEls).length) {
+    if (!newEls || !newEls.length) {
       if (selection.els) Vue.set(selection, 'els', null)
     }
     // else
     else {
+      // create newElsObj
+      const newElsObj: Record<string, true> = {}
+      if (newElsObj)
+        for (let e = 0; e < newEls.length; e++)
+          newElsObj[newEls[e]] = true
+
       // if empty > select
-      if (!selection.els) Vue.set(selection, 'els', newEls)
+      if (!selection.els)
+        Vue.set(selection, 'els', newElsObj)
       // if filled
       else {
         const olds = Object.keys(selection.els)
-        const news = Object.keys(newEls)
         // new is single & exactly the same
         if (
-          news.length == 1 &&
+          newEls.length == 1 &&
           olds.length == 1 &&
-          news[0] == olds[0]
+          newEls[0] == olds[0]
         ) {
           // adding > deselect
           if (add) Vue.set(selection, 'els', null)
           // not adding > pass
         } else {
           // not adding > replace selection
-          if (!add) Vue.set(selection, 'els', newEls)
+          if (!add) Vue.set(selection, 'els', newElsObj)
           // adding
           if (add) {
             // new is single & already selected > deselect
             if (
-              news.length == 1 &&
-              !!selection.els[news[0]]
+              newEls.length == 1 &&
+              !!selection.els[newEls[0]]
             )
-              Vue.delete(selection.els, news[0])
+              Vue.delete(selection.els, newEls[0])
             // else if new single & different OR new is multiple > add to selection
             else
               Vue.set(
                 selection,
                 'els',
-                Object.assign(newEls, selection.els)
+                Object.assign(newElsObj, selection.els)
               )
           }
           // TODO filter out selection to remove subs of selected
         }
       }
     }
+    // console.log(
+    //   newEls,
+    //   add,
+    //   s0,
+    //   '>',
+    //   Object.keys(selection.els || {})
+    // )
   }
 
-  movingObjs = true
-  prev = new Vec2()
-  @Action startDrag(e: MouseEvent) {
-    this.prev.x = e.clientX / this.zoomLevel
-    this.prev.y = e.clientY / this.zoomLevel
-
-    window.addEventListener('mousemove', this.drag)
-    window.addEventListener('mouseup', () => {
-      window.removeEventListener('mousemove', this.drag)
-    })
+  //  dragging selected els
+  isDraggingSelection = false
+  @Mutation startDraggingSelection() {
+    this.isDraggingSelection = true
   }
-
-  offset = new Vec2()
-  @Action private drag(e: MouseEvent) {
-    const clientX = e.clientX / this.zoomLevel
-    const clientY = e.clientY / this.zoomLevel
-
-    if (this.movingObjs) {
-      this.offset.x = clientX - this.prev.x
-      this.offset.y = clientY - this.prev.y
-      this.moveObj(this.offset)
-
-      this.prev.x = clientX
-      this.prev.y = clientY
-    }
+  @Mutation endDraggingSelection() {
+    this.isDraggingSelection = false
   }
-
-  @Mutation moveObj(offset: Vec2) {
-    if (!this.selection.els) return
+  @Mutation dragSelection(offset: Vec2) {
     if (!file.current) return
+
+    offset.x /= this.zoomLevel
+    offset.y /= this.zoomLevel
 
     for (const id in this.selection.els) {
       const el = file.current.els[id]
@@ -171,4 +217,4 @@ class Content extends VuexModule {
   }
 }
 
-export default getModule(Content)
+export default getModule(Viewport)

@@ -3,33 +3,17 @@
     :class="{ obj: true, selected: isSelected }"
     :style="{ left: coords.x, top: coords.y }"
   >
-    <!-- v-if="!isEditingText" -->
-    <p
-      :class="{ text: true, selected: isSelected }"
-      :style="style"
-      @click.left.stop="onClick"
-      @mousedown="onMouseDown"
-    >
-      {{ state.text || '-' }}
-    </p>
-    <!-- <input
-      :class="{ text: true, selected: isSelected }"
-      :style="style"
-      v-model="state.text"
-      placeholder="-"
-      @click.left.stop="onClick"
-      @mousedown="onMouseDown"
-    />
     <span
-      ref="input"
-      class="input"
       role="textbox"
-      contenteditable
-    >
-      {{ state.text }}
-    </span> -->
-    <!-- <span id="size-calibration"></span>
-    <input id="autosized-input" /> -->
+      :contenteditable="isSelected"
+      :class="{ text: true, selected: isSelected }"
+      :style="style"
+      @mousedown.left.stop="onMouseDown"
+      @blur="onBlur"
+      v-text="state.text"
+    />
+    <!-- @mouseenter="onMouseEnter"
+      @mouseleave="onMouseLeave" -->
   </div>
 </template>
 
@@ -41,8 +25,14 @@ import {
   Watch,
 } from 'vue-property-decorator'
 
-import content from '@/store/modules/content'
+import viewport from '@/store/modules/viewport'
 import { IObj } from '@/@types/base'
+
+import {
+  onMouseDown,
+  onMouseEnter,
+  onMouseLeave,
+} from '@/utils/mouse'
 
 @Component({
   components: {
@@ -56,9 +46,11 @@ export default class ObjV extends Vue {
   @Prop({ type: Object, required: true })
   state!: IObj
 
-  inputEl!: Element
-  mounted() {
-    this.inputEl = this.$refs.input as Element
+  onBlur(e: FocusEvent) {
+    viewport.setText({
+      obj: this.state,
+      text: (e.target as any).innerText,
+    })
   }
 
   get text() {
@@ -66,11 +58,11 @@ export default class ObjV extends Vue {
   }
 
   set text(val: string | undefined) {
-    content.setText({ obj: this.state, text: val })
+    viewport.setText({ obj: this.state, text: val })
   }
 
   get style() {
-    return content.objStyles[this.state.style || 'default']
+    return viewport.objStyles[this.state.style || 'default']
   }
 
   get coords() {
@@ -81,60 +73,20 @@ export default class ObjV extends Vue {
   }
 
   get isSelected() {
-    return !!content.selection.els?.[this.id]
-  }
-
-  isEditingText = false
-  @Watch('isSelected')
-  onSelect(val: boolean) {
-    if (!val) {
-      this.isEditingText = false
-      // content.setText({
-      //   obj: this.state,
-      //   text: this.inputEl.innerHTML,
-      // })
-    }
-  }
-
-  onClick(e: MouseEvent) {
-    if (!e.altKey && !this.isDragging) {
-      if (!this.isSelected || e.shiftKey)
-        content.selectEl({
-          newEls: { [this.id]: true },
-          add: e.shiftKey ? true : false,
-        })
-      else {
-        this.isEditingText = true
-      }
-    }
+    return !!viewport.selection.els?.[this.id]
   }
 
   mouseTimer: number | undefined
   isDragging = false
   onMouseDown(e: MouseEvent) {
-    // if not selected yet, select
-    if (!this.isSelected && !e.altKey)
-      content.selectEl({
-        newEls: { [this.id]: true },
-        add: e.shiftKey ? true : false,
-      })
+    onMouseDown({ e, elId: this.id })
+  }
 
-    content.startDrag(e)
-
-    // add delays to differentiate between clicks and drags
-    clearTimeout(this.mouseTimer)
-    this.mouseTimer = setTimeout(() => {
-      this.isDragging = true
-    }, 500) as any
-
-    window.addEventListener('mouseup', () => {
-      clearTimeout(this.mouseTimer)
-      delete this.mouseTimer
-
-      setTimeout(() => {
-        this.isDragging = false
-      }, 1)
-    })
+  onMouseEnter() {
+    onMouseEnter(this.id)
+  }
+  onMouseLeave() {
+    onMouseLeave(this.id)
   }
 }
 </script>
@@ -143,11 +95,12 @@ export default class ObjV extends Vue {
 .obj {
   position: absolute;
   pointer-events: all;
-  padding: 5px;
+  padding: 10px;
 
   .text {
     position: relative;
     cursor: pointer;
+    white-space: pre;
     margin: 0;
   }
 }
@@ -168,31 +121,4 @@ export default class ObjV extends Vue {
     bottom: 0;
   }
 }
-// TODO use this to auto size the input according to the span
-// #relative-parent {
-//     position: relative;
-//     min-width: 1em;
-//     width: min-content;
-//   }
-
-//   #size-calibration {
-//     visibility: hidden;
-//     /* Prevent the span from wrapping the text when input value has multiple words, or collapsing multiple spaces into one */
-//     white-space: pre;
-//   }
-
-//   #autosized-input {
-//     position: absolute;
-//     left: 0;
-//     width: 100%;
-//   }
-
-//   #size-calibration, #autosized-input {
-//     /* Normalize styles that the browser sets differently between spans and inputs.
-//     Ideally, use a "CSS reset" here. */
-//     font-family: "Arial";
-//     padding: 0;
-//     /* Demonstrate that this works for input with custom styles */
-//     font-size: 24px;
-//   }
 </style>
