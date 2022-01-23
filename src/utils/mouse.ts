@@ -1,13 +1,13 @@
 import { Vec2 } from '@/@types/base'
-import viewport from '@/store/modules/viewport'
+import main from '@/store/modules/main'
 import { getDistance } from './math'
 
-const dragDelay = 300
+const dragDelay = 500
 const minDragLimit = 3
 let dragDelayTimer: number | undefined
 let isDragging = false
 
-const dClickDelay = 300
+const dClickDelay = 500
 let dClickTimer: number | undefined
 
 const offset = new Vec2()
@@ -58,7 +58,7 @@ export function onMouseMove(e: MouseEvent) {
     )
     if (dist >= minDragLimit) {
       isDragging = true
-      viewport.onDragStart({ e, elId: elIdOnCursor })
+      main.onDragStart({ e, elId: elIdOnCursor })
     }
   }
   // if dragging, call onDrag
@@ -68,7 +68,7 @@ export function onMouseMove(e: MouseEvent) {
 
     offset.x = e.clientX - prev.x
     offset.y = e.clientY - prev.y
-    viewport.onDrag({ e, offset })
+    main.onDrag({ e, offset })
     prev.x = e.clientX
     prev.y = e.clientY
   }
@@ -87,11 +87,12 @@ export function onMouseUp(e: MouseEvent) {
   if (!isDragging) {
     // if double click timer is not started yet
     if (dClickTimer == undefined) {
-      // treat as click
-      viewport.onClick({ e, elId: elIdOnCursor })
       // start double click timer
       dClickTimer = setTimeout(() => {
-        // after delay, remove timer
+        // after delay
+        // treat the last one as click
+        main.onClick({ e, elId: elIdOnCursor })
+        // remove timer
         dClickTimer = undefined
       }, dClickDelay) as any
     }
@@ -101,14 +102,14 @@ export function onMouseUp(e: MouseEvent) {
       clearTimeout(dClickTimer)
       dClickTimer = undefined
       // treat as double click
-      viewport.onDoubleClick({ e, elId: elIdOnCursor })
+      main.onDoubleClick({ e, elId: elIdOnCursor })
     }
   }
   // else, stop dragging
   else {
     setTimeout(() => {
       isDragging = false
-      viewport.onDragEnd({ e, elId: elIdOnCursor })
+      main.onDragEnd({ e, elId: elIdOnCursor })
     }, 1)
   }
 }

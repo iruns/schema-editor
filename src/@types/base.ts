@@ -1,52 +1,50 @@
 export type IFile = {
-  objStyles: Record<string, IObjStyle>
-  linkStyles: Record<string, ILinkStyle>
-  els: Record<string, IObj | ILink>
+  elements: Record<string, IAnyEl>
+  root: IObjContainer
 }
 
-export type IObjStyle = {
-  level: number
-  color?: string
-  bgColor?: string
-}
-
-export enum ElType {
-  OBJ,
-  LINK,
-}
+export type IAnyEl = IObj | IInstanceRoot | IInstance
+export type IRootEl = IObj | IInstanceRoot
 
 export type IEl = {
-  type: ElType
-}
-
-export interface IObj extends IEl {
-  type: ElType.OBJ
-  coords: Vec2
-  text?: string
-  style?: string
-  subs?: Record<string, IObj>
-  parent?: string
-  clones?: string[]
-  hidden?: true
-}
-
-export type ILinkStyle = {
+  id: string
+  hide?: true
   color?: string
-  dashes?: number[]
+
+  link2A?: Record<string, string>
+  link2B?: Record<string, string>
 }
 
-export interface ILink extends IEl {
-  type: ElType.LINK
-  style?: string
-  el0: string
-  el1: string
+export interface IObjContainer extends IEl {
+  subIds?: Record<string, 1>
+}
+
+export interface IObj extends IObjContainer {
+  coords: Vec2
+
+  text?: string
+  level?: number
+}
+
+export interface IInstance extends IEl {
+  ref: IAnyEl
+  objRefId: string
+  // path: string[]
+
+  subIds?: Record<string, string>
+}
+export interface IInstanceRoot extends IInstance {
+  coords: Vec2
+}
+
+export type ILink = {
+  aS: Record<string, string>
+  bS: Record<string, string>
+
   mid?: Vec2
-  arrow0?: true
-  arrow1?: true
-}
 
-export type Edit = {
-  //
+  arrowA?: true
+  arrowB?: true
 }
 
 export type ElSelection = {

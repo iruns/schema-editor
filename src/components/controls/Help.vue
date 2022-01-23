@@ -1,16 +1,29 @@
 <template>
   <div class="help px-4">
-    <h1>Keyboard</h1>
-    <p>Pan: <b>Arrows</b></p>
-    <p>Pan more: <b>SHIFT + Arrows</b></p>
+    <h1>Navigation</h1>
+
+    <h2>Keyboard</h2>
     <p>Zoom: <b>CTRL + Arrow Up/Down</b></p>
-    <p>Next/Prev step: <b>ALT + Arrows</b></p>
-    <p>Next/Prev 5 steps: <b>ALT + SHIFT + Arrows</b></p>
     <v-divider />
-    <h1>Mouse</h1>
-    <p>Pan: <b>CTRL + Mouse drag</b></p>
+
+    <h2>Mouse</h2>
+    <p>Pan: <b>RMB drag, CTRL + LMB drag</b></p>
     <p>Zoom: <b>CTRL + wheel</b></p>
-    <p>Next/Prev step: <b>ALT + wheel</b></p>
+    <v-divider />
+
+    <h1>Editing</h1>
+    <p>Add root obj: <b>CTRL + 2LMB on root</b></p>
+    <p>Add child obj: <b>CTRL + 2LMB on parent area</b></p>
+    <p>
+      Parent selected obj(s):
+      <b>ALT + 2LMB on parent area</b>
+    </p>
+    <p>
+      Unparent selected obj(s): <b>ALT + 2LMB on root</b>
+    </p>
+    <p>
+      Link selected obj: <b>ALT + LMB on target area</b>
+    </p>
   </div>
 </template>
 
@@ -27,6 +40,12 @@ export default class Help extends Vue {
 .help {
   h1 {
     font-size: 12px;
+    text-transform: uppercase;
+    margin-top: 1em;
+    margin-bottom: 1em;
+  }
+  h2 {
+    font-size: 10px;
     text-transform: uppercase;
     margin-top: 1em;
     margin-bottom: 1em;

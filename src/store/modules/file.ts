@@ -17,10 +17,65 @@ import {
   DataRes,
   ServerReqType,
 } from '@/@types/server'
-import { ElType, IFile, Vec2 } from '@/@types/base'
+import {
+  IFile,
+  IInstanceRoot,
+  IRootEl,
+  Vec2,
+} from '@/@types/base'
 
 const name = 'file'
 if ((store as any).state[name]) store.unregisterModule(name)
+
+const els: Record<string, IRootEl> = {
+  o0: {
+    id: 'o0',
+    coords: new Vec2(),
+    text: 'Obj0!',
+    level: 2,
+  },
+  o1: {
+    id: 'o1',
+    coords: new Vec2(100, 0),
+    text: 'Obj1',
+    level: 2,
+  },
+  prnt: {
+    id: 'prnt',
+    coords: new Vec2(100, 100),
+    text: 'Parent',
+    subIds: { chld0: 1, chld1: 1 },
+    level: 2,
+  },
+  chld0: {
+    id: 'chld0',
+    coords: new Vec2(100, 0),
+    text: 'Child0',
+    level: 3,
+  },
+  chld1: {
+    id: 'chld1',
+    coords: new Vec2(150, 0),
+    text: 'Child1',
+    level: 3,
+  },
+}
+
+const prntIn0: IInstanceRoot = {
+  id: 'prntIn0',
+  ref: els.prnt,
+  objRefId: 'prnt',
+  coords: new Vec2(100, 200),
+}
+els.prntIn0 = prntIn0
+
+const current: IFile = {
+  elements: els,
+  root: {
+    id: 'root',
+    subIds: { o0: 1, o1: 1, prnt: 1, prntIn0: 1 },
+  },
+}
 
 @Module({
   name,
@@ -29,6 +84,8 @@ if ((store as any).state[name]) store.unregisterModule(name)
   store,
 })
 class File extends VuexModule {
+  current = current
+
   // Getting file list
   fileNames: Record<string, string[]> = {}
   @Mutation setFileNames({ folder, files }: FileNamesRes) {
@@ -39,37 +96,6 @@ class File extends VuexModule {
   activeFolder: string | null = null
   activeFile: string | null = null
   lines: any[] = []
-
-  current: IFile | null = {
-    objStyles: {
-      default: {
-        level: 2,
-      },
-      element: {
-        color: 'tomato',
-        level: 1,
-      },
-    },
-    linkStyles: {},
-    els: {
-      o0: {
-        type: ElType.OBJ,
-        coords: new Vec2(),
-        text: 'test!',
-      },
-      o1: {
-        type: ElType.OBJ,
-        coords: new Vec2(100, 0),
-        text: 'AAAAAA',
-      },
-      o2: {
-        type: ElType.OBJ,
-        style: 'element',
-        coords: new Vec2(100, 100),
-        text: 'AAAAAA',
-      },
-    },
-  }
 
   @Mutation pickFile(payload: DataReq) {
     Vue.set(this, 'activeFolder', payload.folder!)

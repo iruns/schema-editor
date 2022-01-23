@@ -3,14 +3,13 @@
     <div v-if="currentFile" class="file">
       <div id="ref-el-viewport" />
       <div class="objs">
-        <template v-for="(el, eId) in currentFile.els">
-          <Obj
-            v-if="el.type == elType.obj"
-            :key="eId"
-            :id="eId"
-            :state="el"
-          />
-        </template>
+        <Obj
+          v-for="(el, eId) in currentFile.root.subIds"
+          :key="eId"
+          :elements="elements"
+          :objId="eId"
+          :state="elements[eId]"
+        />
       </div>
     </div>
   </div>
@@ -27,8 +26,6 @@ import {
 import file from '@/store/modules/file'
 import Obj from '@/components/viewport/Obj.vue'
 
-import { ElType } from '@/@types/base'
-
 @Component({
   components: {
     Obj,
@@ -44,13 +41,12 @@ export default class Viewport extends Vue {
     //
   }
 
-  elType = {
-    obj: ElType.OBJ,
-    link: ElType.LINK,
-  }
-
   get currentFile() {
     return file.current
+  }
+
+  get elements() {
+    return this.currentFile?.elements || null
   }
 
   @Watch('file.details.staticData', {

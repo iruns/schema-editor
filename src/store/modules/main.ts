@@ -12,8 +12,10 @@ import file from './file'
 
 import {
   ElSelection,
-  ElType,
+  IAnyEl,
   IEl,
+  IInstance,
+  IInstanceRoot,
   IObj,
   Vec2,
 } from '@/@types/base'
@@ -21,8 +23,10 @@ import {
   DragEventParams,
   MouseEventParams,
 } from '@/utils/mouse'
+import { Obj } from '@/classes/Els'
+import { uniqueId } from 'lodash'
 
-const name = 'viewport'
+const name = 'main'
 if ((store as any).state[name]) store.unregisterModule(name)
 
 const objSizes: string[] = []
@@ -38,29 +42,57 @@ for (let l = 0; l < 5; l++) {
   dynamic: true,
   store,
 })
-class Viewport extends VuexModule {
+class Main extends VuexModule {
   zoomLevel = 1
   @Mutation setZoomLevel(val: number) {
     this.zoomLevel = val
   }
 
+  @Mutation addIns({
+    parent,
+    objRefId,
+    ref,
+  }: {
+    parent: IInstance
+    objRefId: string
+    ref: IAnyEl
+  }) {
+    if (!file.current) return
+
+    const id = uniqueId('ins')
+    const ins: IInstance = {
+      ref,
+      objRefId,
+      id,
+    }
+
+    if (!parent.subIds) Vue.set(parent, 'subIds', {})
+    Vue.set(parent.subIds!, objRefId, id)
+    Vue.set(file.current.elements, id, ins)
+  }
+
+  @Action getLocalCoords({
+    clientX,
+    clientY,
+    parentObj,
+  }: {
+    clientX: number
+    clientY: number
+    parentObj?: string
+  }) {
+    // get parent el or the root reference el
+    // return the offset
+  }
+
   get objStyles() {
-    const result: Record<string, Record<string, any>> = {}
+    const result: Record<string, any>[] = []
 
-    if (file.current) {
-      const { objStyles } = file.current
+    for (let l = 0; l < objSizes.length; l++) {
+      const style = (result[l] = {} as any)
 
-      for (const name in objStyles) {
-        const objStyle = objStyles[name]
-        const style = (result[name] = {} as any)
+      style['font-size'] = objSizes[l]
 
-        style['font-size'] = objSizes[objStyle.level]
-
-        if (objStyle.color) style.color = objStyle.color
-
-        if (objStyle.level <= 1)
-          style['font-weight'] = 'bold'
-      }
+      if (l <= 1) style['font-weight'] = 'bold'
     }
 
     return result
@@ -119,7 +151,20 @@ class Viewport extends VuexModule {
 
   // Specific mouse even handling
 
-  //  selecting els
+  // add/remove Els
+  @Mutation addObj({ e, elId }: MouseEventParams) {
+    if (!file.current) return
+
+    const newObj = new Obj(e.clientX, e.clientY)
+    const id = uniqueId('ob')
+
+    // if there's a parent
+
+    // then add to root
+    Vue.set(file.current.elements, id, newObj)
+  }
+
+  //  selecting Els
   selection: ElSelection = {
     els: null,
   }
@@ -193,7 +238,7 @@ class Viewport extends VuexModule {
     // )
   }
 
-  //  dragging selected els
+  //  dragging selected Els
   isDraggingSelection = false
   @Mutation startDraggingSelection() {
     this.isDraggingSelection = true
@@ -208,13 +253,19 @@ class Viewport extends VuexModule {
     offset.y /= this.zoomLevel
 
     for (const id in this.selection.els) {
-      const el = file.current.els[id]
-      if (!el || el.type != ElType.OBJ) continue
+      const el = file.current.elements[id]
+      let obj = el as IObj
 
-      el.coords.x += offset.x
-      el.coords.y += offset.y
+      // if instance (not root instance)
+      if (!(el as IInstanceRoot).coords)
+        obj = file.current.elements[
+          (el as IInstance).objRefId
+        ] as IObj
+
+      obj.coords.x += offset.x
+      obj.coords.y += offset.y
     }
   }
 }
 
-export default getModule(Viewport)
+export default getModule(Main)

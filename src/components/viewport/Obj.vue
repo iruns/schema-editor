@@ -10,10 +10,19 @@
       :style="style"
       @mousedown.left.stop="onMouseDown"
       @blur="onBlur"
-      v-text="state.text"
+      v-text="objState.text"
     />
     <!-- @mouseenter="onMouseEnter"
       @mouseleave="onMouseLeave" -->
+    <div v-if="subs" class="subs">
+      <ObjV
+        v-for="(el, eId) in subs"
+        :key="eId"
+        :elements="elements"
+        :objId="eId"
+        :state="el"
+      />
+    </div>
   </div>
 </template>
 
@@ -25,8 +34,14 @@ import {
   Watch,
 } from 'vue-property-decorator'
 
-import viewport from '@/store/modules/viewport'
-import { IObj } from '@/@types/base'
+import main from '@/store/modules/main'
+import {
+  IAnyEl,
+  IInstance,
+  IInstanceRoot,
+  IObj,
+  IRootEl,
+} from '@/@types/base'
 
 import {
   onMouseDown,
@@ -40,53 +55,114 @@ import {
   },
 })
 export default class ObjV extends Vue {
+  @Prop({ type: Object, required: true })
+  elements!: Record<string, IRootEl>
+
   @Prop({ type: String, required: true })
-  id!: string
+  objId!: string
 
   @Prop({ type: Object, required: true })
-  state!: IObj
+  state!: IAnyEl
 
+  // Setup
+
+  get type() {
+    if (!(this.state as IInstance).ref) return 'obj'
+    if ((this.state as IInstanceRoot).coords) return 'insR'
+    return 'ins'
+  }
+
+  get objState() {
+    if (this.type == 'obj') return this.state as IObj
+
+    return this.elements[
+      (this.state as IInstance).objRefId
+    ] as IObj
+  }
+
+  get subs() {
+    if (!this.state.subIds) return null
+
+    const result: Record<string, IAnyEl> = {}
+    for (const id in this.state.subIds) {
+      const sub = this.state.subIds[id]
+      // if referencing an obj, use the id, if an instance, use the instance id of the sub obj
+      result[id] = this.elements[sub == 1 ? id : sub]
+    }
+
+    return result
+  }
+
+  mounted() {
+    const state = this.state as IInstance
+
+    // if instance create subs that don't have a state yet
+    if (!state.ref) return
+
+    const src = state.ref
+    if (!src.subIds) return
+    for (const id in src.subIds) {
+      if (!state.subIds || !state.subIds[id]) {
+        // if referencing an obj, use the id, if an instance, use the instance id of the sub obj
+        const sub = src.subIds[id]
+        main.addIns({
+          parent: state,
+          objRefId: id,
+          ref: this.elements[sub == 1 ? id : sub],
+        })
+      }
+    }
+  }
+
+  // TODO if ref is not found, delete own tree
+
+  // Editing
   onBlur(e: FocusEvent) {
-    viewport.setText({
-      obj: this.state,
+    main.setText({
+      obj: this.objState,
       text: (e.target as any).innerText,
     })
   }
 
   get text() {
-    return this.state.text
+    return this.objState.text
   }
 
   set text(val: string | undefined) {
-    viewport.setText({ obj: this.state, text: val })
+    main.setText({ obj: this.objState, text: val })
   }
 
   get style() {
-    return viewport.objStyles[this.state.style || 'default']
+    return Object.assign(
+      { color: this.state.color || this.objState.color },
+      main.objStyles[this.objState.level || 1]
+    )
   }
 
   get coords() {
+    const coords =
+      this.type != 'insR'
+        ? this.objState.coords
+        : (this.state as IInstanceRoot).coords
     return {
-      x: this.state.coords.x + 'px',
-      y: this.state.coords.y + 'px',
+      x: coords.x + 'px',
+      y: coords.y + 'px',
     }
   }
 
   get isSelected() {
-    return !!viewport.selection.els?.[this.id]
+    return !!main.selection.els?.[this.state.id]
   }
 
-  mouseTimer: number | undefined
-  isDragging = false
   onMouseDown(e: MouseEvent) {
-    onMouseDown({ e, elId: this.id })
+    onMouseDown({ e, elId: this.state.id })
   }
 
   onMouseEnter() {
-    onMouseEnter(this.id)
+    onMouseEnter(this.state.id)
   }
   onMouseLeave() {
-    onMouseLeave(this.id)
+    onMouseLeave(this.state.id)
   }
 }
 </script>
@@ -102,6 +178,10 @@ export default class ObjV extends Vue {
     cursor: pointer;
     white-space: pre;
     margin: 0;
+  }
+
+  .subs {
+    position: relative;
   }
 }
 .obj,
