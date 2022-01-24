@@ -48,6 +48,26 @@ class Main extends VuexModule {
     this.zoomLevel = val
   }
 
+  @Mutation setRefHidden(insState: IInstance) {
+    let val = true
+
+    // if the refState is not set yet, set
+    if (!insState.refState)
+      Vue.set(insState, 'refState', {})
+
+    const ref = insState.ref
+    // if ref is Obj, set from it
+    if (!(ref as IInstance).ref) val = ref.hidden || false
+    // if ref is another instance, set from it's hidden or refHidden
+    else
+      val =
+        ref.hidden ||
+        (ref as IInstance).refState?.hidden ||
+        false
+
+    Vue.set(insState.refState!, 'hidden', val)
+  }
+
   @Mutation addIns({
     parent,
     objRefId,
@@ -97,6 +117,8 @@ class Main extends VuexModule {
 
     return result
   }
+
+  hiddenOpacity = 0.1
 
   @Mutation setText({
     obj,
@@ -167,6 +189,7 @@ class Main extends VuexModule {
   //  selecting Els
   selection: ElSelection = {
     els: null,
+    links: null,
   }
   @Mutation selectEl({
     newEls,
@@ -186,10 +209,10 @@ class Main extends VuexModule {
     // else
     else {
       // create newElsObj
-      const newElsObj: Record<string, true> = {}
+      const newElsObj: Record<string, 1> = {}
       if (newElsObj)
         for (let e = 0; e < newEls.length; e++)
-          newElsObj[newEls[e]] = true
+          newElsObj[newEls[e]] = 1
 
       // if empty > select
       if (!selection.els)
@@ -254,16 +277,16 @@ class Main extends VuexModule {
 
     for (const id in this.selection.els) {
       const el = file.current.elements[id]
-      let obj = el as IObj
+      let movableEl = el as IObj
 
       // if instance (not root instance)
       if (!(el as IInstanceRoot).coords)
-        obj = file.current.elements[
+        movableEl = file.current.elements[
           (el as IInstance).objRefId
         ] as IObj
 
-      obj.coords.x += offset.x
-      obj.coords.y += offset.y
+      movableEl.coords.x += offset.x
+      movableEl.coords.y += offset.y
     }
   }
 }

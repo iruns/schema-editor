@@ -6,13 +6,16 @@ export type IFile = {
 export type IAnyEl = IObj | IInstanceRoot | IInstance
 export type IRootEl = IObj | IInstanceRoot
 
-export type IEl = {
-  id: string
-  hide?: true
+export type IElVars = {
+  hidden?: true
   color?: string
 
   link2A?: Record<string, string>
   link2B?: Record<string, string>
+}
+
+export interface IEl extends IElVars {
+  id: string
 }
 
 export interface IObjContainer extends IEl {
@@ -32,6 +35,8 @@ export interface IInstance extends IEl {
   // path: string[]
 
   subIds?: Record<string, string>
+
+  refState?: IElVars
 }
 export interface IInstanceRoot extends IInstance {
   coords: Vec2
@@ -48,7 +53,8 @@ export type ILink = {
 }
 
 export type ElSelection = {
-  els: Record<string, true> | null
+  els: Record<string, 1> | null
+  links: Record<string, 1> | null
 }
 
 export class Vec2 {

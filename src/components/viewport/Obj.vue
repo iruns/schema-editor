@@ -80,6 +80,11 @@ export default class ObjV extends Vue {
     ] as IObj
   }
 
+  get refState() {
+    if (this.type == 'obj') return null
+    return (this.state as IInstance).refState || {}
+  }
+
   get subs() {
     if (!this.state.subIds) return null
 
@@ -99,12 +104,12 @@ export default class ObjV extends Vue {
     // if instance create subs that don't have a state yet
     if (!state.ref) return
 
-    const src = state.ref
-    if (!src.subIds) return
-    for (const id in src.subIds) {
+    const ref = state.ref
+    if (!ref.subIds) return
+    for (const id in ref.subIds) {
       if (!state.subIds || !state.subIds[id]) {
         // if referencing an obj, use the id, if an instance, use the instance id of the sub obj
-        const sub = src.subIds[id]
+        const sub = ref.subIds[id]
         main.addIns({
           parent: state,
           objRefId: id,
@@ -132,11 +137,32 @@ export default class ObjV extends Vue {
     main.setText({ obj: this.objState, text: val })
   }
 
+  @Watch('state.ref.hidden', { immediate: true })
+  onRefHide(val?: boolean, prev?: boolean) {
+    if (val != prev)
+      main.setRefHidden(this.state as IInstance)
+  }
+
+  get hidden() {
+    // if own is true, just return true
+    if (this.state.hidden) return true
+
+    // if not an instance, just return false
+    if (this.type == 'obj') return false
+
+    // if an instance, use the refState
+    return this.refState?.hidden || false
+  }
+
   get style() {
-    return Object.assign(
+    const result: any = Object.assign(
       { color: this.state.color || this.objState.color },
       main.objStyles[this.objState.level || 1]
     )
+
+    if (this.hidden) result.opacity = main.hiddenOpacity
+
+    return result
   }
 
   get coords() {

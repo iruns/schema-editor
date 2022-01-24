@@ -58,6 +58,7 @@ const els: Record<string, IRootEl> = {
     coords: new Vec2(150, 0),
     text: 'Child1',
     level: 3,
+    hidden: true,
   },
 }
 
