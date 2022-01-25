@@ -8,7 +8,7 @@
       </v-tabs>
       <v-tabs-items
         v-model="tab"
-        style="overflow-y: scroll;"
+        style="flex: 1 1 auto;overflow-y: scroll;"
       >
         <v-tab-item key="details">
           <Details />
