@@ -14,12 +14,11 @@
     />
     <!-- @mouseenter="onMouseEnter"
       @mouseleave="onMouseLeave" -->
-    <div v-if="subs" class="subs">
+    <div v-if="children" class="children">
       <ObjV
-        v-for="(el, eId) in subs"
+        v-for="(el, eId) in children"
         :key="eId"
         :elements="elements"
-        :objId="eId"
         :state="el"
       />
     </div>
@@ -37,8 +36,9 @@ import {
 import main from '@/store/modules/main'
 import {
   IAnyEl,
-  IInstance,
-  IInstanceRoot,
+  IClone,
+  ICloneRoot,
+  IElVars,
   IObj,
   IRootEl,
 } from '@/@types/base'
@@ -49,6 +49,8 @@ import {
   onMouseLeave,
 } from '@/utils/mouse'
 
+// TODO watch ref to update EndState
+
 @Component({
   components: {
     //
@@ -58,100 +60,110 @@ export default class ObjV extends Vue {
   @Prop({ type: Object, required: true })
   elements!: Record<string, IRootEl>
 
-  @Prop({ type: String, required: true })
-  objId!: string
-
   @Prop({ type: Object, required: true })
   state!: IAnyEl
 
   // Setup
 
   get type() {
-    if (!(this.state as IInstance).ref) return 'obj'
-    if ((this.state as IInstanceRoot).coords) return 'insR'
-    return 'ins'
+    if (!(this.state as IClone).ref) return 'obj'
+    if ((this.state as ICloneRoot).isRoot)
+      return 'cloneRoot'
+    return 'clone'
   }
 
   get objState() {
     if (this.type == 'obj') return this.state as IObj
-
-    return this.elements[
-      (this.state as IInstance).objRefId
-    ] as IObj
+    return (this.state as IClone).objRef
   }
 
-  get refState() {
-    if (this.type == 'obj') return null
-    return (this.state as IInstance).refState || {}
-  }
-
-  get subs() {
-    if (!this.state.subIds) return null
+  get children() {
+    if (!this.state.childIds) return null
 
     const result: Record<string, IAnyEl> = {}
-    for (const id in this.state.subIds) {
-      const sub = this.state.subIds[id]
-      // if referencing an obj, use the id, if an instance, use the instance id of the sub obj
+    for (const id in this.state.childIds) {
+      const sub = this.state.childIds[id]
+      // if referencing an obj, use the id, if a clone, use the clone id of the sub obj
       result[id] = this.elements[sub == 1 ? id : sub]
     }
 
     return result
   }
 
-  mounted() {
-    const state = this.state as IInstance
-
-    // if instance create subs that don't have a state yet
-    if (!state.ref) return
-
-    const ref = state.ref
-    if (!ref.subIds) return
-    for (const id in ref.subIds) {
-      if (!state.subIds || !state.subIds[id]) {
-        // if referencing an obj, use the id, if an instance, use the instance id of the sub obj
-        const sub = ref.subIds[id]
-        main.addIns({
-          parent: state,
-          objRefId: id,
-          ref: this.elements[sub == 1 ? id : sub],
-        })
-      }
-    }
-  }
-
-  // TODO if ref is not found, delete own tree
-
-  // Editing
-  onBlur(e: FocusEvent) {
-    main.setText({
-      obj: this.objState,
-      text: (e.target as any).innerText,
-    })
-  }
-
+  // Own or Obj vars
+  //  text
   get text() {
     return this.objState.text
   }
-
   set text(val: string | undefined) {
-    main.setText({ obj: this.objState, text: val })
+    main.setVal({ el: this.objState, key: 'text', val })
+  }
+  onBlur(e: FocusEvent) {
+    this.text = (e.target as any).innerText
   }
 
-  @Watch('state.ref.hidden', { immediate: true })
-  onRefHide(val?: boolean, prev?: boolean) {
-    if (val != prev)
-      main.setRefHidden(this.state as IInstance)
+  get level() {
+    return this.objState.level
+  }
+
+  get coords() {
+    let rootEl: IRootEl | undefined
+
+    switch (this.type) {
+      case 'clone':
+        rootEl = (this.state as IClone).objRef
+        break
+      default:
+        rootEl = this.state as ICloneRoot
+    }
+
+    return {
+      x: (rootEl?.x || 0) + 'px',
+      y: (rootEl?.y || 0) + 'px',
+    }
+  }
+
+  // endState
+  get refEndState() {
+    if (this.type == 'obj') return null
+
+    const src = (this.state as IClone).ref
+    if ((src as IClone).ref) return (src as IClone).endState
+    return src as IElVars
+  }
+  get endState() {
+    if (this.type == 'obj') return this.state as IObj
+    else return (this.state as IClone).endState
   }
 
   get hidden() {
-    // if own is true, just return true
-    if (this.state.hidden) return true
+    // if a clone, check if endState should be updated
+    if (this.type == 'clone') this.updateEndVal('hidden')
 
-    // if not an instance, just return false
-    if (this.type == 'obj') return false
+    // then return the endState
+    return this.endState.hidden
+  }
 
-    // if an instance, use the refState
-    return this.refState?.hidden || false
+  get color() {
+    // if a clone, check if endState should be updated
+    if (this.type == 'clone') this.updateEndVal('color')
+
+    // then return the endState
+    return this.endState.color
+  }
+
+  updateEndVal(key: keyof IElVars) {
+    const newVal =
+      this.state[key] || this.refEndState?.[key]
+
+    if (newVal != this.endState[key])
+      main.setEndVal({
+        clone: this.state as IClone,
+        key,
+        val: newVal,
+      })
+
+    return newVal
   }
 
   get style() {
@@ -165,15 +177,42 @@ export default class ObjV extends Vue {
     return result
   }
 
-  get coords() {
-    const coords =
-      this.type != 'insR'
-        ? this.objState.coords
-        : (this.state as IInstanceRoot).coords
-    return {
-      x: coords.x + 'px',
-      y: coords.y + 'px',
+  // if clone, match the children to ref
+  @Watch('state.objRef.childIds', { immediate: true })
+  onRefChildIds(refChildIds?: Record<string, 1>) {
+    const state = this.state as IClone
+    if (!state.ref) return
+
+    // if the ref has children
+    if (refChildIds) {
+      // create children that don't have a state yet
+      for (const id in refChildIds) {
+        if (!state.childIds || !state.childIds[id]) {
+          // if referencing an obj, use the id,
+          // else if a clone, use the clone id of the sub obj
+          const sub = refChildIds[id]
+          main.cloneChild({
+            parent: state,
+            ref: this.elements[sub == 1 ? id : sub],
+          })
+        }
+      }
+
+      // remove children that don't exist in the ref anymore
+      for (const id in state.childIds) {
+        if (!refChildIds || !refChildIds[id]) {
+          main.removeCloneChild({
+            parent: state,
+            refId: id,
+          })
+        }
+      }
     }
+    // else, remove own childIds
+    else
+      main.removeCloneChild({
+        parent: state,
+      })
   }
 
   get isSelected() {
@@ -206,7 +245,7 @@ export default class ObjV extends Vue {
     margin: 0;
   }
 
-  .subs {
+  .children {
     position: relative;
   }
 }

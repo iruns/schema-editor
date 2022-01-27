@@ -4,10 +4,9 @@
       <div id="ref-el-viewport" />
       <div class="objs">
         <Obj
-          v-for="(el, eId) in currentFile.root.subIds"
+          v-for="(el, eId) in currentFile.root.childIds"
           :key="eId"
           :elements="elements"
-          :objId="eId"
           :state="elements[eId]"
         />
       </div>

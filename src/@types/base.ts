@@ -1,45 +1,52 @@
 export type IFile = {
   elements: Record<string, IAnyEl>
   root: IObjContainer
+  colors: Record<string, string>
 }
 
-export type IAnyEl = IObj | IInstanceRoot | IInstance
-export type IRootEl = IObj | IInstanceRoot
+export type IAnyEl = IObj | ICloneRoot | IClone
+export type IRootEl = IObj | ICloneRoot
 
 export type IElVars = {
   hidden?: true
   color?: string
 
-  link2A?: Record<string, string>
-  link2B?: Record<string, string>
+  // link2A?: Record<string, string>
+  // link2B?: Record<string, string>
 }
 
 export interface IEl extends IElVars {
   id: string
+  parentId?: string
 }
 
 export interface IObjContainer extends IEl {
-  subIds?: Record<string, 1>
+  childIds?: Record<string, 1>
 }
 
 export interface IObj extends IObjContainer {
-  coords: Vec2
+  x: number
+  y: number
 
   text?: string
-  level?: number
+  level: number
 }
 
-export interface IInstance extends IEl {
+export interface IClone extends IEl {
   ref: IAnyEl
-  objRefId: string
+
+  objRef: IObj
   // path: string[]
 
-  subIds?: Record<string, string>
+  childIds?: Record<string, string>
 
-  refState?: IElVars
+  refEndState: IElVars
+  endState: IElVars
 }
-export interface IInstanceRoot extends IInstance {
-  coords: Vec2
+export interface ICloneRoot extends IClone {
+  isRoot: true
+  x: number
+  y: number
 }
 
 export type ILink = {
@@ -55,6 +62,18 @@ export type ILink = {
 export type ElSelection = {
   els: Record<string, 1> | null
   links: Record<string, 1> | null
+
+  objs: IObj[]
+  rootEls: IRootEl[]
+
+  clones: (IClone | ICloneRoot)[]
+  childClones: IClone[]
+
+  cloneObjRefs: IObj[]
+  rootCloneObjRefs: IObj[]
+  childCloneObjRefs: IObj[]
+
+  cloneEndStates: IElVars[]
 }
 
 export class Vec2 {

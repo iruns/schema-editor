@@ -19,62 +19,70 @@ import {
 } from '@/@types/server'
 import {
   IFile,
-  IInstanceRoot,
+  ICloneRoot,
   IRootEl,
   Vec2,
 } from '@/@types/base'
+import { CloneRoot, Obj } from '@/classes/Els'
 
 const name = 'file'
 if ((store as any).state[name]) store.unregisterModule(name)
 
 const els: Record<string, IRootEl> = {
-  o0: {
+  o0: new Obj({
     id: 'o0',
-    coords: new Vec2(),
+    x: 0,
+    y: 0,
     text: 'Obj0!',
     level: 2,
-  },
-  o1: {
+  }),
+  o1: new Obj({
     id: 'o1',
-    coords: new Vec2(100, 0),
+    x: 100,
+    y: 0,
     text: 'Obj1',
     level: 2,
-  },
-  prnt: {
+  }),
+  prnt: new Obj({
     id: 'prnt',
-    coords: new Vec2(100, 100),
+    x: 100,
+    y: 100,
     text: 'Parent',
-    subIds: { chld0: 1, chld1: 1 },
+    childIds: { chld0: 1, chld1: 1 },
     level: 2,
-  },
-  chld0: {
+  }),
+  chld0: new Obj({
     id: 'chld0',
-    coords: new Vec2(100, 0),
+    x: 100,
+    y: 0,
     text: 'Child0',
     level: 3,
-  },
-  chld1: {
+  }),
+  chld1: new Obj({
     id: 'chld1',
-    coords: new Vec2(150, 0),
+    x: 150,
+    y: 0,
     text: 'Child1',
     level: 3,
     hidden: true,
-  },
+  }),
 }
 
-const prntIn0: IInstanceRoot = {
+els.prntIn0 = new CloneRoot({
   id: 'prntIn0',
   ref: els.prnt,
-  objRefId: 'prnt',
-  coords: new Vec2(100, 200),
-}
-els.prntIn0 = prntIn0
+  x: 100,
+  y: 200,
+})
 
 const current: IFile = {
   elements: els,
   root: {
     id: 'root',
-    subIds: { o0: 1, o1: 1, prnt: 1, prntIn0: 1 },
+    childIds: { o0: 1, o1: 1, prnt: 1, prntIn0: 1 },
+  },
+  colors: {
+    red: 'tomato',
   },
 }
 
@@ -109,23 +117,20 @@ class File extends VuexModule {
   }
 
   @Mutation receiveData({ req, lines }: DataRes) {
-    const folder = req.folder || this.activeFolder
-    if (!folder) return
-
-    const file = req.file || this.activeFile
-    if (!file) return
-
-    const start = req.start || 0
-
-    lines.forEach((line, l) => {
-      l += start
-      try {
-        const data = JSON.parse(line)
-        Vue.set(this.lines, l, data)
-      } catch (error) {
-        console.log(error)
-      }
-    })
+    // const folder = req.folder || this.activeFolder
+    // if (!folder) return
+    // const file = req.file || this.activeFile
+    // if (!file) return
+    // const start = req.start || 0
+    // lines.forEach((line, l) => {
+    //   l += start
+    //   try {
+    //     const data = JSON.parse(line)
+    //     Vue.set(this.lines, l, data)
+    //   } catch (error) {
+    //     console.log(error)
+    //   }
+    // })
   }
 }
 

@@ -14,16 +14,17 @@ import {
   ElSelection,
   IAnyEl,
   IEl,
-  IInstance,
-  IInstanceRoot,
+  IClone,
+  ICloneRoot,
   IObj,
   Vec2,
+  IRootEl,
 } from '@/@types/base'
 import {
   DragEventParams,
   MouseEventParams,
 } from '@/utils/mouse'
-import { Obj } from '@/classes/Els'
+import { Clone, Obj } from '@/classes/Els'
 import { uniqueId } from 'lodash'
 
 const name = 'main'
@@ -48,47 +49,36 @@ class Main extends VuexModule {
     this.zoomLevel = val
   }
 
-  @Mutation setRefHidden(insState: IInstance) {
-    let val = true
-
-    // if the refState is not set yet, set
-    if (!insState.refState)
-      Vue.set(insState, 'refState', {})
-
-    const ref = insState.ref
-    // if ref is Obj, set from it
-    if (!(ref as IInstance).ref) val = ref.hidden || false
-    // if ref is another instance, set from it's hidden or refHidden
-    else
-      val =
-        ref.hidden ||
-        (ref as IInstance).refState?.hidden ||
-        false
-
-    Vue.set(insState.refState!, 'hidden', val)
-  }
-
-  @Mutation addIns({
+  @Mutation cloneChild({
     parent,
-    objRefId,
     ref,
   }: {
-    parent: IInstance
-    objRefId: string
+    parent: IClone
     ref: IAnyEl
   }) {
     if (!file.current) return
 
-    const id = uniqueId('ins')
-    const ins: IInstance = {
-      ref,
-      objRefId,
+    const id = uniqueId('clone')
+    const clone: IClone = new Clone({
       id,
-    }
+      ref,
+    })
 
-    if (!parent.subIds) Vue.set(parent, 'subIds', {})
-    Vue.set(parent.subIds!, objRefId, id)
-    Vue.set(file.current.elements, id, ins)
+    if (!parent.childIds) Vue.set(parent, 'childIds', {})
+    Vue.set(parent.childIds!, clone.objRef.id, id)
+    Vue.set(file.current.elements, id, clone)
+  }
+  @Mutation removeCloneChild({
+    parent,
+    refId,
+  }: {
+    parent: IClone
+    refId?: string
+  }) {
+    if (!parent.childIds) return
+
+    if (refId) Vue.delete(parent.childIds, refId)
+    else Vue.delete(parent, 'childIds')
   }
 
   @Action getLocalCoords({
@@ -120,15 +110,50 @@ class Main extends VuexModule {
 
   hiddenOpacity = 0.1
 
-  @Mutation setText({
-    obj,
-    text,
+  // EDIT FIELDS
+  @Mutation setVal({
+    el,
+    key,
+    val,
   }: {
-    obj: IObj
-    text?: string
+    el: IAnyEl
+    key: string | number
+    val?: any
   }) {
-    obj.text = text
+    Vue.set(el, key, val)
   }
+
+  @Mutation setEndVal({
+    clone,
+    key,
+    val,
+  }: {
+    clone: IClone
+    key: string | number
+    val: any
+  }) {
+    Vue.set(clone.endState, key, val)
+  }
+
+  // TODO to setSelectionVal, handle the various types here
+  @Mutation setValsInGroups({
+    groups,
+    key,
+    val,
+  }: {
+    groups: IAnyEl[][]
+    key: string
+    val: any
+  }) {
+    if (key !== 'coords') {
+      // for (let i = 0; i < els.length; i++)
+      //   Vue.set(els[i], key, val)
+    } else {
+      //
+    }
+  }
+
+  // MOUSE
 
   // Raw mouse event handling and distribution
   @Action onClick({ e, elId }: MouseEventParams) {
@@ -175,21 +200,31 @@ class Main extends VuexModule {
 
   // add/remove Els
   @Mutation addObj({ e, elId }: MouseEventParams) {
-    if (!file.current) return
-
-    const newObj = new Obj(e.clientX, e.clientY)
-    const id = uniqueId('ob')
-
-    // if there's a parent
-
-    // then add to root
-    Vue.set(file.current.elements, id, newObj)
+    // if (!file.current) return
+    // const newObj = new Obj(e.clientX, e.clientY)
+    // const id = uniqueId('ob')
+    // // if there's a parent
+    // // then add to root
+    // Vue.set(file.current.elements, id, newObj)
   }
 
   //  selecting Els
+  // TODO add selection parents
   selection: ElSelection = {
     els: null,
     links: null,
+
+    objs: [],
+    rootEls: [],
+
+    clones: [],
+    childClones: [],
+
+    cloneObjRefs: [],
+    rootCloneObjRefs: [],
+    childCloneObjRefs: [],
+
+    cloneEndStates: [],
   }
   @Mutation selectEl({
     newEls,
@@ -200,7 +235,32 @@ class Main extends VuexModule {
   }) {
     const { selection } = this
 
-    // const s0 = Object.keys(selection.els || {})
+    const {
+      els,
+
+      objs,
+      rootEls,
+      clones,
+      childClones,
+
+      cloneObjRefs,
+      rootCloneObjRefs,
+      childCloneObjRefs,
+
+      cloneEndStates,
+    } = selection
+
+    objs.length = 0
+    rootEls.length = 0
+
+    clones.length = 0
+    childClones.length = 0
+
+    cloneObjRefs.length = 0
+    rootCloneObjRefs.length = 0
+    childCloneObjRefs.length = 0
+
+    cloneEndStates.length = 0
 
     // if not selecting > empty
     if (!newEls || !newEls.length) {
@@ -251,14 +311,28 @@ class Main extends VuexModule {
           // TODO filter out selection to remove subs of selected
         }
       }
+
+      for (const id in els) {
+        const el = file.current.elements[id]
+
+        if (!(el as IClone).ref) {
+          objs.push(el as IObj)
+          rootEls.push(el as IRootEl)
+        } else if ((el as IClone).ref) {
+          clones.push(el as IClone)
+          cloneObjRefs.push((el as IClone).objRef)
+          cloneEndStates.push((el as IClone).endState)
+
+          if ((el as ICloneRoot).isRoot) {
+            rootEls.push(el as ICloneRoot)
+            rootCloneObjRefs.push((el as ICloneRoot).objRef)
+          } else {
+            childClones.push(el as IClone)
+            childCloneObjRefs.push((el as IClone).objRef)
+          }
+        }
+      }
     }
-    // console.log(
-    //   newEls,
-    //   add,
-    //   s0,
-    //   '>',
-    //   Object.keys(selection.els || {})
-    // )
   }
 
   //  dragging selected Els
@@ -279,14 +353,14 @@ class Main extends VuexModule {
       const el = file.current.elements[id]
       let movableEl = el as IObj
 
-      // if instance (not root instance)
-      if (!(el as IInstanceRoot).coords)
+      // if clone (not root clone)
+      if (!(el as ICloneRoot).isRoot)
         movableEl = file.current.elements[
-          (el as IInstance).objRefId
+          (el as IClone).objRef.id
         ] as IObj
 
-      movableEl.coords.x += offset.x
-      movableEl.coords.y += offset.y
+      movableEl.x += offset.x
+      movableEl.y += offset.y
     }
   }
 }

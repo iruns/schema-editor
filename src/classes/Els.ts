@@ -1,18 +1,118 @@
-import { ILink, IObj, Vec2 } from '@/@types/base'
+import {
+  IAnyEl,
+  IClone,
+  ICloneRoot,
+  IElVars,
+  IObj,
+} from '@/@types/base'
 
 export class Obj implements IObj {
-  coords: Vec2
+  id: string
+
+  x: number
+  y: number
 
   text?: string
-  level?: number
+  level: number
 
-  subIds?: Record<string, 1>
-  parent?: string
+  parentId?: string
+  childIds?: Record<string, 1>
 
-  hidden?: Record<string, true>
+  hidden?: true
 
-  constructor(x = 0, y = 0) {
-    this.coords = new Vec2(x, y)
+  constructor({
+    id,
+
+    x,
+    y,
+
+    level = 2,
+    text,
+
+    childIds,
+    parentId,
+  }: IObj) {
+    this.id = id
+
+    this.x = x
+    this.y = y
+
+    this.level = level
+    this.text = text
+
+    this.parentId = parentId
+    this.childIds = childIds
+  }
+}
+
+export class Clone implements IClone {
+  id: string
+
+  ref: IAnyEl
+  objRef: IObj
+
+  parentId?: string
+
+  childIds?: Record<string, string> | undefined
+
+  endState: IElVars
+
+  constructor({
+    id,
+    ref,
+    parentId,
+  }: {
+    id: string
+    ref: IAnyEl
+    parentId?: string
+  }) {
+    this.id = id
+
+    this.ref = ref
+
+    this.parentId = parentId
+
+    if ((this.ref as IClone).ref) {
+      const srcClone = this.ref as IClone
+
+      this.objRef = srcClone.objRef
+      this.endState = Object.assign(
+        {},
+        srcClone.refEndState
+      )
+    } else {
+      const srcObj = this.ref as IObj
+
+      this.objRef = srcObj
+      this.endState = {
+        hidden: srcObj.hidden,
+        color: srcObj.color,
+      }
+    }
+  }
+
+  get refEndState() {
+    if ((this.ref as IClone).ref)
+      return (this.ref as IClone).endState
+    return this.ref as IObj
+  }
+}
+
+export class CloneRoot extends Clone implements ICloneRoot {
+  isRoot: true = true
+  x: number
+  y: number
+
+  constructor(props: {
+    id: string
+    ref: IAnyEl
+    x: number
+    y: number
+    parentId?: string
+  }) {
+    super(props)
+    this.x = props.x
+    this.y = props.y
   }
 }
 

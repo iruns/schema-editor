@@ -29,6 +29,7 @@ module.exports = {
     '@typescript-eslint/interface-name-prefix': 'off',
     '@typescript-eslint/no-non-null-assertion': 'off',
     '@typescript-eslint/no-use-before-define': 'off',
+    '@typescript-eslint/no-this-alias': 'off',
   },
   overrides: [
     {
