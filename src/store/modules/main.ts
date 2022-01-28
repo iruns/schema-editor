@@ -15,7 +15,7 @@ import {
   IAnyEl,
   IEl,
   IClone,
-  ICloneRoot,
+  IRootClone,
   IObj,
   Vec2,
   IRootEl,
@@ -145,6 +145,8 @@ class Main extends VuexModule {
     key: string
     val: any
   }) {
+    console.log(key, val)
+
     if (key !== 'coords') {
       // for (let i = 0; i < els.length; i++)
       //   Vue.set(els[i], key, val)
@@ -236,8 +238,6 @@ class Main extends VuexModule {
     const { selection } = this
 
     const {
-      els,
-
       objs,
       rootEls,
       clones,
@@ -312,7 +312,7 @@ class Main extends VuexModule {
         }
       }
 
-      for (const id in els) {
+      for (const id in selection.els) {
         const el = file.current.elements[id]
 
         if (!(el as IClone).ref) {
@@ -323,9 +323,9 @@ class Main extends VuexModule {
           cloneObjRefs.push((el as IClone).objRef)
           cloneEndStates.push((el as IClone).endState)
 
-          if ((el as ICloneRoot).isRoot) {
-            rootEls.push(el as ICloneRoot)
-            rootCloneObjRefs.push((el as ICloneRoot).objRef)
+          if ((el as IRootClone).isRoot) {
+            rootEls.push(el as IRootClone)
+            rootCloneObjRefs.push((el as IRootClone).objRef)
           } else {
             childClones.push(el as IClone)
             childCloneObjRefs.push((el as IClone).objRef)
@@ -354,7 +354,7 @@ class Main extends VuexModule {
       let movableEl = el as IObj
 
       // if clone (not root clone)
-      if (!(el as ICloneRoot).isRoot)
+      if (!(el as IRootClone).isRoot)
         movableEl = file.current.elements[
           (el as IClone).objRef.id
         ] as IObj

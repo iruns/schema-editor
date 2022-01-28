@@ -1,14 +1,31 @@
 import {
   IAnyEl,
   IClone,
-  ICloneRoot,
+  IRootClone,
   IElVars,
   IObj,
+  IEl,
+  ILink,
+  Vec2,
+  ILinkVars,
+  ILinkClone,
 } from '@/@types/base'
 
-export class Obj implements IObj {
+abstract class ElBase implements IEl {
   id: string
+  path?: string[]
 
+  hidden?: true
+  color?: string
+
+  constructor({ id, hidden, color }: IEl) {
+    this.id = id
+    this.hidden = hidden
+    this.color = color
+  }
+}
+
+export class Obj extends ElBase implements IObj {
   x: number
   y: number
 
@@ -31,8 +48,11 @@ export class Obj implements IObj {
 
     childIds,
     parentId,
+
+    hidden,
+    color,
   }: IObj) {
-    this.id = id
+    super({ id, hidden, color })
 
     this.x = x
     this.y = y
@@ -42,12 +62,13 @@ export class Obj implements IObj {
 
     this.parentId = parentId
     this.childIds = childIds
+
+    this.hidden = hidden
   }
 }
 
-export class Clone implements IClone {
-  id: string
-
+// CLONE
+export class Clone extends ElBase implements IClone {
   ref: IAnyEl
   objRef: IObj
 
@@ -61,12 +82,10 @@ export class Clone implements IClone {
     id,
     ref,
     parentId,
-  }: {
-    id: string
-    ref: IAnyEl
-    parentId?: string
-  }) {
-    this.id = id
+    hidden,
+    color,
+  }: Omit<IClone, 'objRef' | 'refEndState' | 'endState'>) {
+    super({ id, hidden, color })
 
     this.ref = ref
 
@@ -98,39 +117,79 @@ export class Clone implements IClone {
   }
 }
 
-export class CloneRoot extends Clone implements ICloneRoot {
+export class CloneRoot extends Clone implements IRootClone {
   isRoot: true = true
   x: number
   y: number
 
-  constructor(props: {
-    id: string
-    ref: IAnyEl
-    x: number
-    y: number
-    parentId?: string
-  }) {
+  constructor(
+    props: Omit<
+      IRootClone,
+      'objRef' | 'refEndState' | 'endState' | 'isRoot'
+    >
+  ) {
     super(props)
     this.x = props.x
     this.y = props.y
   }
 }
 
-// export class Link implements ILink {
-//   type: ElType.LINK = ElType.LINK
+// LINK
+abstract class LinkBase implements ILinkVars {
+  from!: IEl
+  to!: IEl
 
-//   style?: string
+  mid?: Vec2
 
-//   el0: string
-//   el1: string
+  hidden?: true
 
-//   mid?: Vec2
+  arrowTo?: true
+  arrowBack?: true
 
-//   arrow0?: true
-//   arrow1?: true
+  // dashed?: true
+}
+export class Link extends LinkBase implements ILink {
+  ups = 0
+  downPath?: string[]
 
-//   constructor(el0: string, el1: string) {
-//     this.el0 = el0
-//     this.el1 = el1
-//   }
-// }
+  // dashed?: true
+
+  constructor(from: IEl, to: IEl) {
+    super()
+
+    this.from = from
+    this.to = to
+  }
+}
+
+export class LinkClone extends LinkBase
+  implements ILinkClone {
+  ref: ILinkVars
+
+  endState: ILinkVars
+
+  constructor(ref: ILinkVars) {
+    super()
+
+    this.ref = ref
+
+    this.endState = {
+      from: ref.from,
+      to: ref.to,
+
+      mid: ref.mid,
+
+      hidden: ref.hidden,
+      color: ref.color,
+
+      arrowTo: ref.arrowTo,
+      arrowBack: ref.arrowBack,
+    }
+  }
+
+  get refEndState() {
+    if ((this.ref as ILinkClone).ref)
+      return (this.ref as ILinkClone).endState
+    return this.ref as ILink
+  }
+}

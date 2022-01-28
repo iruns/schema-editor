@@ -1,32 +1,9 @@
 <template>
   <div class="field number-input">
     <label>{{ label }}</label>
-    <div class="input-row">
-      <input
-        v-bind:value="value"
-        v-on:input="$emit('input', $event.target.value)"
-      />
-      <v-btn
-        class="btn"
-        icon
-        x-small
-        @click="nudgeValue(-1)"
-      >
-        <v-icon small>
-          mdi-minus-circle-outline
-        </v-icon>
-      </v-btn>
-      <v-btn
-        class="btn"
-        icon
-        x-small
-        @click="nudgeValue(1)"
-      >
-        <v-icon small>
-          mdi-plus-circle-outline
-        </v-icon>
-      </v-btn>
-    </div>
+    <v-chip class="ma-2" close>
+      Closable
+    </v-chip>
   </div>
 </template>
 

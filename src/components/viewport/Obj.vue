@@ -37,7 +37,7 @@ import main from '@/store/modules/main'
 import {
   IAnyEl,
   IClone,
-  ICloneRoot,
+  IRootClone,
   IElVars,
   IObj,
   IRootEl,
@@ -67,7 +67,7 @@ export default class ObjV extends Vue {
 
   get type() {
     if (!(this.state as IClone).ref) return 'obj'
-    if ((this.state as ICloneRoot).isRoot)
+    if ((this.state as IRootClone).isRoot)
       return 'cloneRoot'
     return 'clone'
   }
@@ -114,7 +114,7 @@ export default class ObjV extends Vue {
         rootEl = (this.state as IClone).objRef
         break
       default:
-        rootEl = this.state as ICloneRoot
+        rootEl = this.state as IRootClone
     }
 
     return {
@@ -154,7 +154,9 @@ export default class ObjV extends Vue {
 
   updateEndVal(key: keyof IElVars) {
     const newVal =
-      this.state[key] || this.refEndState?.[key]
+      this.state[key] != undefined
+        ? this.state[key]
+        : this.refEndState?.[key]
 
     if (newVal != this.endState[key])
       main.setEndVal({

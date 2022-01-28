@@ -10,19 +10,13 @@ import store from '..'
 import Vue from 'vue'
 
 import socket from '@/utils/socketio'
-import { clamp } from '@/utils/math'
 import {
   FileNamesRes,
   DataReq,
   DataRes,
   ServerReqType,
 } from '@/@types/server'
-import {
-  IFile,
-  ICloneRoot,
-  IRootEl,
-  Vec2,
-} from '@/@types/base'
+import { IFile, IRootEl } from '@/@types/base'
 import { CloneRoot, Obj } from '@/classes/Els'
 
 const name = 'file'
@@ -83,6 +77,8 @@ const current: IFile = {
   },
   colors: {
     red: 'tomato',
+    puple: 'mediumvioletred',
+    blue: 'darkturquoise',
   },
 }
 

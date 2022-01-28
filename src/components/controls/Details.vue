@@ -11,28 +11,33 @@
     <!-- chips -->
 
     <!-- Element -->
-    <!--    level -->
-    <div class="field" v-if="fields.text">
-      <label>Text</label>
-      <input
-        v-model="values.text.val"
-        placeholder="edit me"
-      />
-      <v-btn icon small>
-        <v-icon small>
-          mdi-minus-circle-outline
-        </v-icon>
-      </v-btn>
-      <v-btn icon small>
-        <v-icon small>
-          mdi-plus-circle-outline
-        </v-icon>
-      </v-btn>
-    </div>
     <!--    hide -->
-    <v-checkbox v-if="fields.hide" :label="'Hide'" />
+    <div class="field hidden" v-if="values.hidden">
+      <label>Hide</label>
+      <input type="checkbox" v-model="values.hidden.val" />
+    </div>
+    <!--    level -->
+    <NumberInput
+      v-if="values.level"
+      v-model="values.level.val"
+      label="Level"
+    />
     <!--    coords -->
-    <!-- Two numbers -->
+    <div class="field-row">
+      <NumberInput
+        class="mr-4"
+        v-if="values.x"
+        v-model="values.x.val"
+        label="X"
+        :nudge="10"
+      />
+      <NumberInput
+        v-if="values.y"
+        v-model="values.y.val"
+        label="Y"
+        :nudge="10"
+      />
+    </div>
     <!--    parent -->
     <!-- One El selector (chip + setter) -->
     <v-chip class="ma-2" close>
@@ -60,11 +65,13 @@ import main from '@/store/modules/main'
 import file from '@/store/modules/file'
 import {
   IAnyEl,
-  ICloneRoot,
+  IRootClone,
   IFile,
   IObj,
-  Vec2,
+  IElVars,
 } from '@/@types/base'
+
+import NumberInput from './NumberInput.vue'
 
 type Button = {
   tooltip: string
@@ -74,17 +81,18 @@ type Button = {
   disabled?: boolean
 }
 
-type FieldKey = keyof IFile | keyof IObj | keyof ICloneRoot
+type FieldKey = keyof IFile | keyof IObj | keyof IRootClone
 type Fields = Partial<Record<FieldKey, 1>>
 
 type ValueObj = {
+  val: any
   // if includes clones (not root) with set val, add UNSET
   // if no val is set, show as semi transparent
   valIsSet: boolean
-  val: any
+  locked?: true
 }
 
-@Component
+@Component({ components: { NumberInput } })
 export default class Details extends Vue {
   get selection() {
     return main.selection
@@ -149,7 +157,7 @@ export default class Details extends Vue {
   }
 
   get fields() {
-    const { fieldgetGroups } = this
+    const { fieldgetGroups, selection } = this
     const result: Fields = {}
 
     if (!this.file) return result
@@ -169,9 +177,9 @@ export default class Details extends Vue {
         for (key in fieldgetGroups.el) result[key] = 1
 
         // if only one type, display the fields of that type
-        if (!this.objs || !this.clones)
+        if (!selection.objs || !selection.clones)
           for (key in fieldgetGroups[
-            this.objs ? 'obj' : 'clone'
+            selection.objs ? 'obj' : 'clone'
           ])
             result[key] = 1
       }
@@ -208,205 +216,135 @@ export default class Details extends Vue {
       return result
     }
 
-    // single
-    //  parent
-    // multiple
-    // still use val and endVal
+    if (fields.x)
+      result.x = this.createValObj({
+        key: 'x',
+        preDisplay: String,
+        preSetting: val => (val = parseInt(val) || 0),
+        getGroups: [rootEls, childCloneObjRefs],
+      })
+    if (fields.y)
+      result.y = this.createValObj({
+        key: 'y',
+        preDisplay: String,
+        preSetting: val => (val = parseInt(val) || 0),
+        getGroups: [rootEls, childCloneObjRefs],
+      })
 
-    // FILE
-
-    // ALL
-    // color
-    //  if different, empty
-
-    // LEVEL
-    // hidden
-    //  if different, empty
-    // coords
-    //  (OBJ / INROOT)
-    //  empty different axes
-    // parent
-    //  (OBJ / INROOT)
-    //  if multiple parents, empty
-    // link
-    //  if multiple objs (or refs), empty
-
-    // INSTANCE
-    // ref
-    //  if more than 1 refs, empty
-
-    // if field exists in refEndState
-    //  if field is set in state, opacity 1
-    //  else get from refEndState, opacity 0.6
-
-    if (fields.x) {
-      result.x = this.createValObj('x', [rootEls, chi])
-
-      let valIsSet = !!objs.length
-      if (!valIsSet)
-        for (let i = 0; i < clones.length; i++) {
-          if ((clones[i] as ICloneRoot).coords) {
-            valIsSet = true
-            break
-          }
-        }
-
-      result.coords = {
-        valIsSet,
-        get val() {
-          const val: Partial<Vec2> = {}
-
-          let sameX = true,
-            sameY = true
-
-          for (let i = 0; i < rootEls.length; i++) {
-            const coords = rootEls[i].coords
-
-            if (sameX) {
-              sameX = intersectVal(coords.x, val.x)
-              if (sameX) val.x = coords.x
-            }
-
-            if (sameY) {
-              sameY = intersectVal(coords.y, val.y)
-              if (sameY) val.y = coords.y
-            }
-
-            if (!sameX && !sameY) break
-          }
-
-          if (sameX || sameY) {
-            for (let i = 0; i < childClones.length; i++) {
-              const coords = childClones[i].objRef.coords
-
-              if (sameX) {
-                sameX = intersectVal(coords.x, val.x)
-                if (sameX) val.x = coords.x
-              }
-
-              if (sameY) {
-                sameY = intersectVal(coords.y, val.y)
-                if (sameY) val.y = coords.y
-              }
-
-              if (!sameX && !sameY) break
-            }
-          }
-
-          return val
-        },
-        set val(val: Partial<Vec2>) {
-          main.setValsIngetGroups({
-            key: 'text',
-            val,
-          })
-        },
-      }
-    }
-
-    // parent
     if (fields.parentId) {
-      // if the only selection are root elements
-      if (nSelecteds == rootEls.length) {
-        result.parentId = {
-          valIsSet: true,
-          get val() {
-            let same = true
-            let parentId: string | undefined = undefined
-
-            for (let i = 0; i < rootEls.length; i++) {
-              if (same) {
-                same = intersectVal(
-                  rootEls[i].parentId,
-                  parentId
-                )
-                if (same) parentId = rootEls[i].parentId
-              }
-              if (!same) break
-            }
-            return rootEls[0].parentId
-          },
-          set val(val: string | undefined) {
-            main.setValsIngetGroups({
-              key: 'parentId',
-              val,
-            })
-          },
-        }
-      }
+      result.parentId = this.createValObj({
+        key: 'parentId',
+        locked: !childClones.length,
+        getGroups: [rootEls, childCloneObjRefs],
+      })
     }
 
-    // ref
-    if (fields.parentId) {
-      // if the only selection are clones
-      if (nSelecteds == clones.length) {
-        result.ref = {
-          valIsSet: true,
-          get val() {
-            let same = true
-            let parentId: string | undefined = undefined
+    if (fields.ref)
+      result.ref = this.createValObj({
+        key: 'ref',
+        locked: !childClones.length,
+        getGroups: [clones],
+      })
 
-            for (let i = 0; i < clones.length; i++) {
-              if (same) {
-                same = intersectVal(
-                  rootEls[i].parentId,
-                  parentId
-                )
-                if (same) parentId = rootEls[i].parentId
-              }
-              if (!same) break
-            }
-            return rootEls[0].parentId
-          },
-          set val(val: string | undefined) {
-            main.setValsIngetGroups({
-              key: 'parentId',
-              val,
-            })
-          },
-        }
-      }
-    }
+    if (fields.hidden)
+      result.hidden = this.createValObj({
+        key: 'hidden',
+        getGroups: [objs, cloneEndStates],
+        setGroups: [objs, cloneObjRefs],
+      })
 
-    // hidden
-    // color
-    // level (only if exactly the same)
+    if (fields.color)
+      result.color = this.createValObj({
+        key: 'color',
+        getAll: true,
+        getGroups: [objs, cloneEndStates],
+        setGroups: [objs, cloneObjRefs],
+      })
+
+    if (fields.level)
+      result.level = this.createValObj({
+        key: 'level',
+        preDisplay: String,
+        preSetting: val => (val = parseInt(val) || 0),
+        getGroups: [objs, cloneObjRefs],
+      })
+
     return result
   }
 
-  createValObj(
-    key: FieldKey,
-    getGroups: IAnyEl[][],
+  createValObj({
+    key,
+    locked,
+    getAll,
+    getGroups,
+    setGroups,
+    preDisplay,
+    preSetting,
+  }: {
+    key: FieldKey
+    locked?: boolean
+    getAll?: boolean
+    getGroups: IElVars[][]
     setGroups?: IAnyEl[][]
-  ) {
+    preDisplay?: (val: any) => any
+    preSetting?: (val: any) => any
+  }) {
     let endVal: any = undefined
 
     const result: ValueObj = {
       valIsSet: true,
       get val() {
-        let same = true
+        // if not getAlling, only display if all of the values are the same
+        if (!getAll) {
+          let same = true
+          let first = true
 
-        for (let g = 0; g < getGroups.length; g++) {
-          const group = getGroups[g]
+          for (let g = 0; g < getGroups.length; g++) {
+            const group = getGroups[g]
 
-          for (let i = 0; i < group.length; i++) {
-            const val = (group[i] as any)[key]
+            for (let i = 0; i < group.length; i++) {
+              const val = (group[i] as any)[key]
 
-            if (result == undefined) endVal = val
-            else if (result != val) {
-              same = false
-              endVal = undefined
-              break
+              // if first, set endVal
+              if (first) {
+                endVal = val
+                first = false
+              }
+              // else, compare to previous
+              else if (result != val) {
+                same = false
+                endVal = undefined
+                break
+              }
+            }
+            if (!same) break
+          }
+        }
+        // else, getAll all vals
+        else {
+          const vals: Record<string, 1> = {}
+          for (let g = 0; g < getGroups.length; g++) {
+            const group = getGroups[g]
+            for (let i = 0; i < group.length; i++) {
+              const val = (group[i] as any)[key] as string
+              if (val !== undefined) vals[val] = 1
             }
           }
-          if (!same) break
+          endVal = Object.keys(vals)
         }
+
+        if (preDisplay) endVal = preDisplay(endVal)
 
         return endVal
       },
-      set val(val: string | undefined) {
+      set val(val: any | undefined) {
+        if (preSetting) val = preSetting(val)
+
+        // if getting all, just take the first value
+        if (getAll) val = val?.[0]
+
         main.setValsInGroups({
-          groups: setGroups || getGroups,
+          groups: setGroups || (getGroups as IAnyEl[][]),
           key,
           val,
         })
@@ -436,6 +374,8 @@ export default class Details extends Vue {
       else result.valIsSet = true
     }
 
+    if (locked) result.locked = true
+
     return result
   }
 }
@@ -449,16 +389,25 @@ export default class Details extends Vue {
 
     line-height: 2;
   }
+  .field-row {
+    display: flex;
+  }
   .field {
-    margin-top: 12px;
+    margin-top: 16px;
+    label {
+      font-size: 12px;
+      font-weight: bold;
+      color: grey;
+    }
     label,
     textarea {
       display: block;
     }
-    label,
-    input,
     textarea {
       font-size: 14px;
+      background-color: whitesmoke;
+      border-radius: 5px;
+      padding: 0.4em;
     }
   }
   // .input-row {
